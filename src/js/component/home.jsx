@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 const estadoInicial = { label: "", done: false }
+const urlBase = "https://playground.4geeks.com/apis/fake/todos/user/Sofia1999"
 
 //create your first component
 const Home = () => {
@@ -13,55 +14,65 @@ const Home = () => {
 			[event.target.name]: event.target.value
 		})
 	}
-	const guardarTarea = (event) => {
+	const guardarTarea = async (event) => {
 		if (event.key == "Enter") {
-			setLista([
-				...lista, tarea
-			])
-			setTarea(estadoInicial)
+
+			try {
+				let response = await fetch(
+					urlBase,
+					{
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify([...lista, tarea])
+					}
+				)
+				if (response.ok) {
+					//la tarea es actualizada correctamente, status 200-299
+					cargaLista()
+					setTarea(estadoInicial)
+				} else {
+					alert("Hubo un error al intentar actualizar la lista")
+				}
+			} catch (error) {
+				console.log(error)
+
+			}
 		}
 	}
-	const handleInput = async (e) => {
-		let objTexto = { label: e.target.value, done: false }
-		if (e.keyCode == 13) {
-			setTarea(e.target.value)
-			let arregloTemp = [...lista, objTexto]
 
-			//este primer fetch es para actualizar la lista de todos
+	const deleteTask = async (id) => {
+		let nuevasTareas = lista.filter((item, index) => id != index)
+		try {
 			let response = await fetch(
-				URI + username,
+				urlBase,
 				{
 					method: 'PUT',
 					headers: {
 						'Content-Type': 'application/json'
 					},
-					body: JSON.stringify(arregloTemp)
+					body: JSON.stringify(nuevasTareas)
 				}
 			)
 			if (response.ok) {
 				//la tarea es actualizada correctamente, status 200-299
-				setLista([...lista, objTexto])
+				cargaLista()
 			} else {
 				alert("Hubo un error al intentar actualizar la lista")
 			}
-		}
-	}
+		} catch (error) {
+			console.log(error)
 
-	const deleteTask = (index) => {
-		let tempArr = lista.slice() //copiar el estado lista en una variable auxiliar
-		tempArr = tempArr.filter((item, index2) => { return index2 != index })
-		setLista(tempArr)
+		}
 	}
 
 	const handleUser = (e) => {
 		setUsername(e.target.value)
 	}
-
-	useEffect(() => {
-		//async function data(){}
-
-		const cargaLista = async () => {
-			let response = await fetch(URI + username) //como obviamos el 2do parámetro, es método GET
+	const cargaLista = async () => {
+		try {
+			let response = await fetch(urlBase) //como obviamos el 2do parámetro, es método GET
 			// response en este punto es una promesa
 
 			if (response.ok) {
@@ -70,16 +81,40 @@ const Home = () => {
 				console.log("respuesta ok: ", objResponse) //[{done:false, label:"Ir al cine"}]
 				setLista(objResponse)
 
-			} else {
-				//error
-				console.log("Error respuesta")
 			}
+			if (response.status == 404) {
+				crearUsuario()
+			}
+		} catch (error) {
+			console.log(error)
 		}
+
+	}
+	const crearUsuario = async () => {
+		try {
+			let response = await fetch(urlBase, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify([])
+			})
+			if (response.ok) {
+				cargaLista()
+			}
+		} catch (error) {
+			console.log(error)
+		}
+	}
+	useEffect(() => {
+		//async function data(){}
+
+
 
 		cargaLista()
 
-	}, [username])
-return (
+	}, [])
+	return (
 		<>
 			<div className="container mt-3">
 				<div className="row justify-content-center">
